@@ -1,12 +1,13 @@
 // Load external libs
 var path = require('path');
 var webpack = require("webpack");
-//var WebpackChunkHash = require("webpack-chunk-hash"); // override hashing of chunks using md5
-//var HtmlWebpackPlugin = require('html-webpack-plugin'); // generate the html using webpack and templates
-//var InlineManifestWebpackPlugin = require('inline-manifest-webpack-plugin'); // 2nd attempt at inlining the manifest
-//var FaviconsWebpackPlugin = require('favicons-webpack-plugin'); // generate favicons for multiple devices
-//var CleanWebpackPlugin = require('clean-webpack-plugin'); // empty build dirs on re-build
-//var ExtractTextPlugin = require("extract-text-webpack-plugin"); // handling CSS files
+var WebpackChunkHash = require("webpack-chunk-hash"); // override hashing of chunks using md5
+var HtmlWebpackPlugin = require('html-webpack-plugin'); // generate the html using webpack and templates
+var HtmlWebpackTemplatePlugin = require('html-webpack-template'); // defines a base html template
+var InlineManifestWebpackPlugin = require('inline-manifest-webpack-plugin'); // 2nd attempt at inlining the manifest
+var FaviconsWebpackPlugin = require('favicons-webpack-plugin'); // generate favicons for multiple devices
+var CleanWebpackPlugin = require('clean-webpack-plugin'); // empty build dirs on re-build
+var ExtractTextPlugin = require("extract-text-webpack-plugin"); // handling CSS files
 
 // Parse environment
 var development = process.env.NODE_ENV !== "production";
@@ -16,13 +17,11 @@ var clean = process.env.BUILD_CLEAN == "true";
 var babelOptions = {
   'cacheDirectory': true,
   "presets": [
-    [
-      "es2015",
-      {
-        "modules": false
+    ["env", {
+      "targets": {
+        "browsers": ["last 2 versions"]
       }
-    ],
-    "es2016"
+    }]
   ]
 };
 
@@ -35,7 +34,7 @@ const IMAGE_PATH = path.resolve(BASE_PATH, 'image');
 module.exports = {
   context: BASE_PATH,
   entry: {
-    vendor: ["lodash", "pixi.js", path.resolve(SCRIPT_PATH, "vendor.ts")],
+    vendor: ["lodash", path.resolve(SCRIPT_PATH, "vendor.ts")],
     app: path.resolve(SCRIPT_PATH, "app.ts")
   },
   output: {
@@ -106,7 +105,7 @@ module.exports = {
             query: {
               mozjpeg: { progressive: true },
               gifsicle: { interlaced: false },
-              optipng: { optimizationLevel: 7 },             
+              optipng: { optimizationLevel: 7 },
               pngquant: {
                 quality: '65-90',
                 speed: 4
@@ -138,14 +137,14 @@ module.exports = {
     // Build Index.html
     new HtmlWebpackPlugin({
       inject: false,
-      template: require('html-webpack-template'),
+      template: HtmlWebpackTemplatePlugin,
       inlineManifestWebpackName: 'webpackManifest',
-      title: 'WebRTC Experiment',
+      title: 'Demo | Nutrition App',
       mobile: true,
       meta: [
         {
           name: 'description',
-          content: 'An experiment with the WebRTC protocol.'
+          content: 'A test client for the nutrition app steel thread demo.'
         }
       ],
       minify: {
@@ -177,7 +176,7 @@ module.exports = {
       }
     }),
 
-    // Hash chunks
+    // Hash chunks (be less performant but more accurate in production)
     development ? new webpack.NamedModulesPlugin() : new webpack.HashedModuleIdsPlugin(),
     new WebpackChunkHash(),
   ]
