@@ -1,0 +1,33 @@
+{
+  "name": "nutritionapp",
+  "version": "0.0.1",
+  "description": "An initial client for the nutritionapp demo",
+  "main": "./src/script/app.ts",
+  "types": "./src/script/globals.d.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "webpack-dev-server --content-base build/ --hot --host 0.0.0.0",
+    "build": "webpack --config ./webpack.config.js",
+    "build_clean": "BUILD_CLEAN=true webpack --config ./webpack.config.js",
+    "build_prod": "NODE_ENV=production webpack --config ./webpack.config.js",
+    "build_prod_clean": "BUILD_CLEAN=true NODE_ENV=production webpack --config ./webpack.config.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@bitbucket.org/ashbyb/nutritionapp.git"
+  },
+  "keywords": [
+    "nutrition",
+    "app"
+  ],
+  "author": "Brendan Ashby",
+  "license": "UNLICENSED",
+  "homepage": "https://bitbucket.org/ashbyb/nutritionapp#readme",
+  "devDependencies": {
+    "normalize.css": "^6.0.0",
+    "ts-loader": "^2.0.3",
+    "typescript": "^2.2.2",
+    "webpack": "^2.4.1",
+    "webpack-dev-server": "^2.4.2"
+  }
+}
