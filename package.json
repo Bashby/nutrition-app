@@ -24,6 +24,8 @@
   "license": "UNLICENSED",
   "homepage": "https://bitbucket.org/ashbyb/nutritionapp#readme",
   "devDependencies": {
+    "@types/react": "^15.0.21",
+    "@types/react-dom": "^0.14.23",
     "babel-core": "^6.24.1",
     "babel-loader": "^6.4.1",
     "babel-preset-env": "^1.4.0",
@@ -37,6 +39,9 @@
     "image-webpack-loader": "^3.3.0",
     "inline-manifest-webpack-plugin": "^3.0.1",
     "normalize.css": "^6.0.0",
+    "react": "^15.5.4",
+    "react-dom": "^15.5.4",
+    "source-map-loader": "^0.2.1",
     "style-loader": "^0.16.1",
     "ts-loader": "^2.0.3",
     "typescript": "^2.2.2",

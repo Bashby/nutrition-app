@@ -4,10 +4,10 @@ var webpack = require("webpack");
 var WebpackChunkHash = require("webpack-chunk-hash"); // override hashing of chunks using md5
 var HtmlWebpackPlugin = require('html-webpack-plugin'); // generate the html using webpack and templates
 var HtmlWebpackTemplatePlugin = require('html-webpack-template'); // defines a base html template
-var InlineManifestWebpackPlugin = require('inline-manifest-webpack-plugin'); // 2nd attempt at inlining the manifest
+var InlineManifestWebpackPlugin = require('inline-manifest-webpack-plugin'); // inline the webpack manifest
 var FaviconsWebpackPlugin = require('favicons-webpack-plugin'); // generate favicons for multiple devices
-var CleanWebpackPlugin = require('clean-webpack-plugin'); // empty build dirs on re-build
-var ExtractTextPlugin = require("extract-text-webpack-plugin"); // handling CSS files
+var CleanWebpackPlugin = require('clean-webpack-plugin'); // empty build dirs on re-build, upon request
+var ExtractTextPlugin = require("extract-text-webpack-plugin"); // Combine CSS into a single file
 
 // Parse environment
 var development = process.env.NODE_ENV !== "production";
@@ -31,11 +31,13 @@ const SCRIPT_PATH = path.resolve(BASE_PATH, 'script');
 const STYLE_PATH = path.resolve(BASE_PATH, 'stylesheet');
 const IMAGE_PATH = path.resolve(BASE_PATH, 'image');
 
+// Main configuration object
 module.exports = {
   context: BASE_PATH,
+  devtool: development ? "source-map" : '',
   entry: {
     vendor: ["lodash", path.resolve(SCRIPT_PATH, "vendor.ts")],
-    app: path.resolve(SCRIPT_PATH, "app.ts")
+    app: path.resolve(SCRIPT_PATH, "app.tsx")
   },
   output: {
     path: path.resolve(__dirname, 'build'),
@@ -91,6 +93,12 @@ module.exports = {
         ]
       },
       {
+        test: /\.js$/,
+        exclude: /node_modules/,
+        use: ["source-map-loader"],
+        enforce: "pre"
+      },
+      {
         test: /\.(png|jpe?g|gif|svg|eot|ttf|woff|woff2)$/i, // Notes: Embed small images in CSS via data-urls
         exclude: /node_modules/,
         use: [
@@ -119,9 +127,13 @@ module.exports = {
   resolve: {
     extensions: ['*', '.ts', '.tsx', '.js', '.json', '.css', 'png', 'jpg', 'jpeg', 'gif', 'svg', 'eot', 'ttf', 'woff', 'woff2']
   },
+  externals: {
+    "react": "React",
+    "react-dom": "ReactDOM"
+  },
   plugins: [
     // Clean up existing
-    clean ? new CleanWebpackPlugin(['dist', 'build']) : function () { },
+    clean ? new CleanWebpackPlugin(['dist', 'build']) : function () {},
 
     // Production optimizations
     development ? function () { } : new webpack.optimize.OccurrenceOrderPlugin(),
@@ -140,6 +152,7 @@ module.exports = {
       template: HtmlWebpackTemplatePlugin,
       inlineManifestWebpackName: 'webpackManifest',
       title: 'Demo | Nutrition App',
+      appMountId: "application",
       mobile: true,
       meta: [
         {
@@ -151,6 +164,10 @@ module.exports = {
         'collapseWhitespace': development ? false : true,
         'preserveLineBreaks': true,
       },
+      scripts: [
+        "https://unpkg.com/react@15/dist/react.min.js",
+        "https://unpkg.com/react-dom@15/dist/react-dom.min.js",
+      ],
     }),
     new InlineManifestWebpackPlugin({
       name: 'webpackManifest'
