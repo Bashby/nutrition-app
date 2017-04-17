@@ -3,7 +3,7 @@ import * as React from "react";
 import * as ReactDOM from "react-dom";
 
 // Local libs
-import { Layout } from "./components/layout";
+import { Layout } from "./components/Layout";
 
 // Load Styles
 require("../stylesheet/base.css");

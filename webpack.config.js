@@ -129,7 +129,8 @@ module.exports = {
   },
   externals: {
     "react": "React",
-    "react-dom": "ReactDOM"
+    "react-dom": "ReactDOM",
+    "react-bootstrap": "ReactBootstrap",
   },
   plugins: [
     // Clean up existing
@@ -164,9 +165,13 @@ module.exports = {
         'collapseWhitespace': development ? false : true,
         'preserveLineBreaks': true,
       },
+      links: [
+        "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css",
+      ],
       scripts: [
         "https://unpkg.com/react@15/dist/react.min.js",
         "https://unpkg.com/react-dom@15/dist/react-dom.min.js",
+        "https://cdnjs.cloudflare.com/ajax/libs/react-bootstrap/0.30.8/react-bootstrap.min.js",
       ],
     }),
     new InlineManifestWebpackPlugin({
