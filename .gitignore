@@ -61,3 +61,12 @@ typings/
 
 # dotenv environment variables file
 .env
+
+### VisualStudioCode ###
+.vscode/*
+# Bashby Edit #
+# Let's just ignore everything in the vscode folder for now
+#!.vscode/settings.json
+#!.vscode/tasks.json
+#!.vscode/launch.json
+#.vscode/extensions.json

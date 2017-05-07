@@ -24,6 +24,7 @@
   "license": "UNLICENSED",
   "homepage": "https://bitbucket.org/ashbyb/nutritionapp#readme",
   "devDependencies": {
+    "@types/lodash": "^4.14.64",
     "@types/react": "^15.0.21",
     "@types/react-bootstrap": "0.0.47",
     "@types/react-dom": "^0.14.23",
@@ -46,6 +47,7 @@
     "source-map-loader": "^0.2.1",
     "style-loader": "^0.16.1",
     "ts-loader": "^2.0.3",
+    "tslint": "^5.2.0",
     "typescript": "^2.2.2",
     "url-loader": "^0.5.8",
     "webpack": "^2.4.1",
