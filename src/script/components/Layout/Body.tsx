@@ -9,6 +9,10 @@ import { Results }  from "./Body/Results";
 // Body
 export class Body extends React.Component<{}, {}> {
     render() {
+        // Compile
+        let results = "";
+
+        // Render
         return (
             <Grid>
                 <Row>
@@ -21,17 +25,17 @@ export class Body extends React.Component<{}, {}> {
                 <Row>
                     <Col lg={12} md={12} sm={12} xs={12}>
                         <Panel>
-                            <Form />
+                            <Form results={results}/>
                         </Panel>
                     </Col>
                 </Row>
-                <Row>
+                {/*<Row>
                     <Col lg={12} md={12} sm={12} xs={12}>
                         <Well>
-                            <Results />
+                            <Results results={results}/>
                         </Well>
                     </Col>
-                </Row>
+                </Row>*/}
             </Grid>
         );
     }
