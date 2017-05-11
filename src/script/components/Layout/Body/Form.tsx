@@ -1,14 +1,20 @@
 // Vendor libs
 import JSONTree from 'react-json-tree';
-import { eq, findIndex, isFinite, toNumber, isEmpty, isString, toString, extend, get, size, forOwn } from "lodash";
+import {startCase, eq, findIndex, isFinite, toNumber, isEmpty, isString, toString, extend, get, size, forOwn } from "lodash";
 import * as React from "react";
 import { FormGroup, ControlLabel, FormControl, HelpBlock, Table, ListGroup, ListGroupItem, InputGroup, Glyphicon, Button, Well, Panel, Checkbox } from "react-bootstrap";
 
 // Local
 import { FieldGroup } from "./Form/FieldGroup";
 import { NutrientTable } from "./Form/NutrientTable";
+import { ResultVisuals } from "./Form/ResultVisuals";
 
 interface State {
+    results?: {
+        m: number[][],
+        r: number[][]
+    },
+    queryString?: string,
     queryResult?: string,
     mealplanParticipantCount?: number,
     mealplanParticipantData: {
@@ -60,6 +66,7 @@ export class Form extends React.Component<Props, State> {
         this.state = {
             rSigma: 0.1,
             useRealAlgorithm: false,
+            queryString: "{}",
             queryResult: "{}",
             isLoading: false,
             mealplanParticipantData: {},
@@ -347,6 +354,22 @@ export class Form extends React.Component<Props, State> {
     useRealAlgorithmOnChangeHandler(e: React.FormEvent<any>) {
         this.setState({useRealAlgorithm: e.currentTarget.checked});
     }
+    recipeChoiceOnChangeHandler(key: string, e: React.FormEvent<any>) {
+        this.setState({
+            recipes: extend(
+                this.state.recipes,
+                {
+                    [key]: extend(
+                        this.state.recipes[key],
+                        {
+                            include: e.currentTarget.checked
+                        }
+                        
+                    )
+                }
+            )
+        });
+    }
 
     formValidatorIsNumber(value: string): "success" | "warning" | "error" | undefined {
         // Short processing if nothing to process
@@ -373,7 +396,7 @@ export class Form extends React.Component<Props, State> {
     }
 
     render() {
-        console.log("State: ", this.state);
+        //console.log("State: ", this.state);
         
         // Compute elements
         let participantDetails = [];
@@ -464,7 +487,7 @@ export class Form extends React.Component<Props, State> {
             )
         }
 
-        let mealNames = [];
+        let mealNames: JSX.Element[] = [];
         for (var i=1; i <= this.state.mealplanMealsPerDay; i++) {
             mealNames.push(
                 <FormGroup controlId={"Select_mealType_m" + i.toString()}>
@@ -487,8 +510,16 @@ export class Form extends React.Component<Props, State> {
                         <option value="dessert">Dessert</option>
                     </FormControl>
                 </FormGroup>
-            )
+            );
         }
+
+        let recipeChoices: JSX.Element[] = [];
+        forOwn(this.state.recipes, (value, key) => {
+            recipeChoices.push(
+                <Checkbox checked={value.include} onChange={this.recipeChoiceOnChangeHandler.bind(this, key)}>{startCase(key)}</Checkbox>
+            );
+        });
+        let recipeChoicesCompiled = <FormGroup controlId={"Checkbox_selectRecipes"}><ControlLabel>{"Recipe Choices"}</ControlLabel>{recipeChoices}</FormGroup>;
 
         // Render
         return (
@@ -535,6 +566,10 @@ export class Form extends React.Component<Props, State> {
                     </ListGroupItem>
                 </ListGroup>}
 
+                {recipeChoices && recipeChoices.length != 0 && <div>
+                    {recipeChoicesCompiled}
+                </div>}
+
                 <NutrientTable
                     mealplanLength={this.state.mealplanTotalDays}
                     mealsPerDay={this.state.mealplanMealsPerDay}
@@ -560,12 +595,25 @@ export class Form extends React.Component<Props, State> {
                 </Well>
 
                 {/*TODO: Layout hack for now.*/}
+                <Panel header={"Query"}>
+                    <JSONTree
+                        data={JSON.parse(this.state.queryString)}
+                        shouldExpandNode={function() { return false; }}
+                    />
+                </Panel>
+
+                {/*TODO: Layout hack for now.*/}
                 <Panel header={"Query Results"}>
                     <JSONTree
                         data={JSON.parse(this.state.queryResult)}
-                        shouldExpandNode={function() { return true; }}
+                        shouldExpandNode={function() { return false; }}
                     />
                 </Panel>
+
+                {this.state.results && <ResultVisuals
+                    m={this.state.results.m}
+                    r={this.state.results.r}
+                />}
             </form>
         );
     }
@@ -579,7 +627,7 @@ export class Form extends React.Component<Props, State> {
         this.request();
     }
 
-    private request() {
+    request(): void {
         // Use port 7732 for the live one
         // algorithm is "bruteforce-0.1.0"
         let url = this.state.useRealAlgorithm ? "http://35.163.82.225:7732/solver/test" : "http://35.163.82.225:7731/solver/test";
@@ -613,7 +661,7 @@ export class Form extends React.Component<Props, State> {
         // Build the R and R sigma matrices
         let R: number[][] = [];
         let rSigma: number[][] = [];
-        forOwn(this.state.recipes, function(value: {include: boolean, ingredients: { [key: string]: number }}) {
+        forOwn(this.state.recipes, (value: {include: boolean, ingredients: { [key: string]: number }}) => {
             if (value.include) {
                 let tempRow: number[] = Array.from({length: ingredientSet.size}, () => 0)
                 let tempRowSigma: number[] = Array.from({length: ingredientSet.size}, () => this.state.rSigma)
@@ -637,13 +685,8 @@ export class Form extends React.Component<Props, State> {
             N.push([f,c,p]);
         });
 
-        fetch(url, {
-            method: 'POST',
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: JSON.stringify({
+        // Set state
+        let queryStr: string = JSON.stringify({
                 "tag" : "demo day! test run.",
                 "algorithm" : algo,
                 "num_iterations" : 3000,
@@ -653,10 +696,24 @@ export class Form extends React.Component<Props, State> {
                 "Rsigma" : rSigma,
                 "N" : N,
                 "T" : T
-            })
+            });
+        this.setState({queryString: queryStr});
+
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: queryStr
         })
         .then((response) => { return response.text(); })
-        .then((response) => { this.setState({queryResult: response}); this.setState({isLoading: false}); })
+        .then((response) => {
+            let data = JSON.parse(response);
+            this.setState({results: extend(this.state.results, {m: data.M, r: data.R})});
+            this.setState({queryResult: response});
+            this.setState({isLoading: false});
+        })
         .catch((error) => {
             console.error(error);
         });
