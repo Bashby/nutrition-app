@@ -5,13 +5,15 @@ import { Table, Panel } from "react-bootstrap";
 import { ResultMTable } from "./ResultVisuals/ResultMTable";
 import { ResultRTable } from "./ResultVisuals/ResultRTable";
 import { ResultMRTable } from "./ResultVisuals/ResultMRTable";
+import { ResultMRNTable } from "./ResultVisuals/ResultMRNTable";
 
 interface State {
 }
 
 interface Props {
     m: number[][],
-    r: number[][]
+    r: number[][],
+    n: number[][]
 }
 
 // Form Result Visuals
@@ -54,6 +56,8 @@ export class ResultVisuals extends React.Component<Props, State> {
     render() {
         // Compute
         let mr: number[][] = this.dotProduct(this.props.m, this.props.r);
+        debugger;
+        let mrn: number[][] = this.dotProduct(mr, this.props.n);
 
         // Render
         return (
@@ -61,6 +65,7 @@ export class ResultVisuals extends React.Component<Props, State> {
                 {this.props.m && <ResultMTable data={this.props.m} />}
                 {this.props.r && <ResultRTable data={this.props.r}/>}
                 {mr && <ResultMRTable data={mr}/>}
+                {mrn && <ResultMRNTable data={mrn}/>}
             </Panel>
         );
     }

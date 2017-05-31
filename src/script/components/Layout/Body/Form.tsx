@@ -1,6 +1,6 @@
 // Vendor libs
 import JSONTree from 'react-json-tree';
-import {startCase, eq, findIndex, isFinite, toNumber, isEmpty, isString, toString, extend, get, size, forOwn } from "lodash";
+import {startCase, eq, findIndex, isFinite, toNumber, isEmpty, isString, toString, extend, get, size, forOwn, forEach } from "lodash";
 import * as React from "react";
 import { FormGroup, ControlLabel, FormControl, HelpBlock, Table, ListGroup, ListGroupItem, InputGroup, Glyphicon, Button, Well, Panel, Checkbox } from "react-bootstrap";
 
@@ -10,9 +10,11 @@ import { NutrientTable } from "./Form/NutrientTable";
 import { ResultVisuals } from "./Form/ResultVisuals";
 
 interface State {
+    nDivisor: number,
     results?: {
         m: number[][],
-        r: number[][]
+        r: number[][],
+        n: number[][]
     },
     queryString?: string,
     queryResult?: string,
@@ -41,6 +43,7 @@ interface State {
     recipes: {
         [name: string]: {
             include: boolean,
+            type?: string,
             ingredients: {
                 [key: string]: number
             }
@@ -64,6 +67,7 @@ export class Form extends React.Component<Props, State> {
     constructor(props: Props) {
         super(props);
         this.state = {
+            nDivisor: 100.0,
             rSigma: 0.1,
             useRealAlgorithm: false,
             queryString: "{}",
@@ -370,6 +374,22 @@ export class Form extends React.Component<Props, State> {
             )
         });
     }
+    recipeTypeOnChangeHandler(key: string, e: React.FormEvent<any>) {
+        this.setState({
+            recipes: extend(
+                this.state.recipes,
+                {
+                    [key]: extend(
+                        this.state.recipes[key],
+                        {
+                            type: e.currentTarget.value
+                        }
+                        
+                    )
+                }
+            )
+        });
+    }
 
     formValidatorIsNumber(value: string): "success" | "warning" | "error" | undefined {
         // Short processing if nothing to process
@@ -396,7 +416,7 @@ export class Form extends React.Component<Props, State> {
     }
 
     render() {
-        //console.log("State: ", this.state);
+        console.log("State: ", this.state);
         
         // Compute elements
         let participantDetails = [];
@@ -514,9 +534,35 @@ export class Form extends React.Component<Props, State> {
         }
 
         let recipeChoices: JSX.Element[] = [];
+        let optionList: JSX.Element[] = [];
+        let disableInput:boolean = false;
+        forOwn(this.state.mealplanMealData, (value, key) => {
+            optionList.push(<option value={key}>{"Meal " + key + ": " + startCase(value.type)}</option>);
+        });
+        if (isEmpty(optionList)) {
+            disableInput = true;
+            optionList.push(<option value="">You must set some meal types above before making a selection here</option>);
+        } else {
+            optionList.unshift(<option value="">select a type of meal</option>);
+        }
         forOwn(this.state.recipes, (value, key) => {
             recipeChoices.push(
-                <Checkbox checked={value.include} onChange={this.recipeChoiceOnChangeHandler.bind(this, key)}>{startCase(key)}</Checkbox>
+                <div>
+                    <Checkbox checked={value.include} onChange={this.recipeChoiceOnChangeHandler.bind(this, key)}>{startCase(key)}</Checkbox>
+                    {value.include && <FormControl
+                        disabled={disableInput}
+                        componentClass="select"
+                        value={
+                            this.state.recipes[key]
+                            && this.state.recipes[key].type
+                                ? this.state.recipes[key].type
+                                : ""
+                        }
+                        onChange={this.recipeTypeOnChangeHandler.bind(this, key)}
+                    >
+                        {optionList}
+                    </FormControl>}
+                </div>
             );
         });
         let recipeChoicesCompiled = <FormGroup controlId={"Checkbox_selectRecipes"}><ControlLabel>{"Recipe Choices"}</ControlLabel>{recipeChoices}</FormGroup>;
@@ -613,6 +659,7 @@ export class Form extends React.Component<Props, State> {
                 {this.state.results && <ResultVisuals
                     m={this.state.results.m}
                     r={this.state.results.r}
+                    n={this.state.results.n}
                 />}
             </form>
         );
@@ -628,35 +675,53 @@ export class Form extends React.Component<Props, State> {
     }
 
     request(): void {
-        // Use port 7732 for the live one
-        // algorithm is "bruteforce-0.1.0"
-        let url = this.state.useRealAlgorithm ? "http://35.163.82.225:7732/solver/test" : "http://35.163.82.225:7731/solver/test";
-        let algo = this.state.useRealAlgorithm ? "bruteforce-0.1.0" : "fake-0.1.0";
-
-        // Build the T and W matrices
-        let T: number[][] = [];
-        let W: number[][] = [];
-        for (var i=1; i <= this.state.mealplanTotalDays ; i++) {
-            for (var j=1; j <= this.state.mealplanMealsPerDay; j++) {
-                for (var k=1; k <= this.state.mealplanParticipantCount; k++) {
-                    let f = Number(get(this.state.mealplanParticipantData[k], "nutrients.fats"));
-                    let c = Number(get(this.state.mealplanParticipantData[k], "nutrients.carbs"));
-                    let p = Number(get(this.state.mealplanParticipantData[k], "nutrients.protein"));
-                    T.push([f, c, p]);
-                    W.push([1.0, 1.0, 1.0]);
-                }
-            }
-        }
-
-        // Get unique ingredient set
+        // Use port 7732 for the live one ("bruteforce-0.1.0")
+        // Use port 7733 for the live one ("fast-0.1.0")
+        let url = this.state.useRealAlgorithm ? "http://35.163.82.225:7733/solver/test" : "http://35.163.82.225:7731/solver/test";
+        let algo = this.state.useRealAlgorithm ? "fast-0.1.0" : "fake-0.1.0";
+        
+        // Get unique ingredient set and active recipe information
         let ingredientSet = new Set<string>();
-        forOwn(this.state.recipes, function(value: {include: boolean, ingredients: { [key: string]: number }}) {
+        let activeRecipeTypes: string[] = [];
+        let activeRecipeCount: number = 0;
+        forOwn(this.state.recipes, function(value: {include: boolean, type?:string, ingredients: { [key: string]: number }}) {
             if (value.include) {
+                activeRecipeCount += 1;
+                activeRecipeTypes.push(value.type ? value.type : 'unknown');
                 forOwn(value.ingredients, function(_: number, key: string) {
                     ingredientSet.add(key);
                 })
             }
         });
+
+        // Build the T, W, and A matrices
+        let T: number[][] = [];
+        let W: number[][] = [];
+        let A: number[][] = [];
+        for (var i=1; i <= this.state.mealplanTotalDays ; i++) {
+            for (var j=1; j <= this.state.mealplanMealsPerDay; j++) {
+                for (var k=1; k <= this.state.mealplanParticipantCount; k++) {
+                    let mealType: string = get(this.state.mealplanMealData[j], "type").toString();
+                    let tempRow: number[] = Array.from({length: activeRecipeCount}, () => 0)
+                    let f = Number(get(this.state.mealplanParticipantData[k], "nutrients.fats"));
+                    let c = Number(get(this.state.mealplanParticipantData[k], "nutrients.carbs"));
+                    let p = Number(get(this.state.mealplanParticipantData[k], "nutrients.protein"));
+
+                    // Update A against current meal type
+                    forEach(tempRow, (_: number, index: number) => {
+                        let recipeType: string = activeRecipeTypes[index];
+                        let recipeTypePlaintext: string = get(this.state.mealplanMealData[recipeType], "type").toString();
+                        console.log(mealType, recipeType, recipeTypePlaintext, i, j, k);
+                        if (eq(mealType, recipeTypePlaintext)) {
+                            tempRow[index] = 1;
+                        }
+                    });
+                    T.push([f, c, p]);
+                    W.push([1.0, 1.0, 1.0]);
+                    A.push(tempRow);
+                }
+            }
+        }
 
         // Build the R and R sigma matrices
         let R: number[][] = [];
@@ -665,12 +730,18 @@ export class Form extends React.Component<Props, State> {
             if (value.include) {
                 let tempRow: number[] = Array.from({length: ingredientSet.size}, () => 0)
                 let tempRowSigma: number[] = Array.from({length: ingredientSet.size}, () => this.state.rSigma)
+                let rowSum: number = 0;
                 forOwn(value.ingredients, function(value: number, key: string) {
                     let targetIndex = findIndex(Array.from(ingredientSet), function(value: string) {
                         return eq(value, key);
                     })
                     tempRow[targetIndex] = value;
+                    rowSum += value;
                 })
+                // Divide each ingredient in R by total of all ingredients for recipe
+                forEach(tempRow, (value: number, index: number) => {
+                    tempRow[index] = value / rowSum;
+                });
                 R.push(tempRow);
                 rSigma.push(tempRowSigma);
             }
@@ -679,9 +750,9 @@ export class Form extends React.Component<Props, State> {
         // Build the N matrix
         let N: number[][] = [];
         forOwn(Array.from(ingredientSet), (value: string) => {
-            let f = Number(get(this.state.ingredients[value], "f"));
-            let c = Number(get(this.state.ingredients[value], "c"));
-            let p = Number(get(this.state.ingredients[value], "p"));
+            let f = Number(get(this.state.ingredients[value], "f")) / this.state.nDivisor;
+            let c = Number(get(this.state.ingredients[value], "c")) / this.state.nDivisor;
+            let p = Number(get(this.state.ingredients[value], "p")) / this.state.nDivisor;
             N.push([f,c,p]);
         });
 
@@ -695,7 +766,8 @@ export class Form extends React.Component<Props, State> {
                 "R" : R,
                 "Rsigma" : rSigma,
                 "N" : N,
-                "T" : T
+                "T" : T,
+                "A": A
             });
         this.setState({queryString: queryStr});
 
@@ -710,7 +782,7 @@ export class Form extends React.Component<Props, State> {
         .then((response) => { return response.text(); })
         .then((response) => {
             let data = JSON.parse(response);
-            this.setState({results: extend(this.state.results, {m: data.M, r: data.R})});
+            this.setState({results: extend(this.state.results, {m: data.M, r: data.R, n:N})});
             this.setState({queryResult: response});
             this.setState({isLoading: false});
         })
