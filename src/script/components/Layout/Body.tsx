@@ -18,7 +18,7 @@ export class Body extends React.Component<{}, {}> {
                 <Row>
                     <Col lg={12} md={12} sm={12} xs={12}>
                         <PageHeader>
-                            Basic Meal Planner <small>v0.1.0</small>
+                            Basic Meal Planner <small>v0.1.1</small>
                         </PageHeader>
                     </Col>
                 </Row>

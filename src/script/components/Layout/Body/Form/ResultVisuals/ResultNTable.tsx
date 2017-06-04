@@ -1,23 +1,25 @@
 // Vendor libs
 import { size } from "lodash";
 import * as React from "react";
-import { Table, Button, Panel, Well, Glyphicon } from "react-bootstrap";
+import { Table, Well, Button, Glyphicon, Panel } from "react-bootstrap";
 
+// State
 interface State {
     precision: number,
     open: boolean,
     text: string,
 }
 
+// Props
 interface Props {
     data: number[][],
-    recipes?: string[],
+    nutrients?: string[],
     ingredients?: string[],
     showTotals: boolean
 }
 
-// Form Result Visuals: R Matrix Table
-export class ResultRTable extends React.Component<Props, State> {
+// Form Result Visuals: N Matrix Table
+export class ResultNTable extends React.Component<Props, State> {
     constructor(props: Props) {
         super(props);
         this.state = {
@@ -34,8 +36,8 @@ export class ResultRTable extends React.Component<Props, State> {
         // Build the table headers
         let headers: JSX.Element[] = [<th>Recipe</th>];
         for (let i=1; i<= recipeCount; i++) {
-            let ingredientText = this.props.ingredients ? this.props.ingredients[i-1].toString() : "Ing. " + i.toString() + " (g)";
-            headers.push(<th>{ingredientText}</th>);
+            let nutrientText = this.props.nutrients ? this.props.nutrients[i-1].toString() : "Nutr. " + i.toString() + " (g)";
+            headers.push(<th>{nutrientText}</th>);
         }
 
         // Add Totals Column, if set
@@ -47,8 +49,8 @@ export class ResultRTable extends React.Component<Props, State> {
         let rows: JSX.Element[] = [];
         let columnTotals: number[] = Array.from({length: size(this.props.data[0])}, () => 0);
         for (let i=1; i<= size(this.props.data); i++) {
-            let recipeText = this.props.recipes ? this.props.recipes[i-1].toString() : "Rec. " + i.toString();
-            let cells: JSX.Element[] = [<td>{recipeText}</td>];
+            let ingredientText = this.props.ingredients ? this.props.ingredients[i-1].toString() : "Ing. " + i.toString() + " (g)";
+            let cells: JSX.Element[] = [<td>{ingredientText}</td>];
             let rowTotal: number = 0;
             for (let j=0; j< size(this.props.data[i-1]); j++) {
                 rowTotal += this.props.data[i-1][j];
@@ -94,7 +96,7 @@ export class ResultRTable extends React.Component<Props, State> {
         // Render
         return (
             <div>
-                <span>R Matrix (Recipe by Ingredient)</span>
+                <span>N Matrix (Ingredient by Nutrient)</span>
                 <Button 
                     bsStyle="link"
                     bsSize="small"

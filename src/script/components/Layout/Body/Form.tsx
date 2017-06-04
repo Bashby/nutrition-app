@@ -14,7 +14,8 @@ interface State {
     results?: {
         m: number[][],
         r: number[][],
-        n: number[][]
+        n: number[][],
+        t: number[][]
     },
     queryString?: string,
     queryResult?: string,
@@ -55,7 +56,11 @@ interface State {
             c: number,
             p: number
         }
-    }
+    },
+    mealPlaintext?: string[],
+    recipePlaintext?: string[],
+    ingredientPlaintext?: string[],
+    nutrientPlaintext?: string[]
 }
 
 interface Props {
@@ -660,6 +665,11 @@ export class Form extends React.Component<Props, State> {
                     m={this.state.results.m}
                     r={this.state.results.r}
                     n={this.state.results.n}
+                    t={this.state.results.t}
+                    mealPlaintext={this.state.mealPlaintext}
+                    recipePlaintext={this.state.recipePlaintext}
+                    ingredientPlaintext={this.state.ingredientPlaintext}
+                    nutrientPlaintext={this.state.nutrientPlaintext}
                 />}
             </form>
         );
@@ -679,14 +689,30 @@ export class Form extends React.Component<Props, State> {
         // Use port 7733 for the live one ("fast-0.1.0")
         let url = this.state.useRealAlgorithm ? "http://35.163.82.225:7733/solver/test" : "http://35.163.82.225:7731/solver/test";
         let algo = this.state.useRealAlgorithm ? "fast-0.1.0" : "fake-0.1.0";
+
+        // Build a list of meal names for marking up the result matrices
+        // TODO: Handle state better!
+        let tempMealPlaintext: string[] = [];
+        for (var i=1; i <= this.state.mealplanTotalDays; i++) {
+            for (var j=1; j <= this.state.mealplanMealsPerDay; j++) {
+                for (var k=1; k <= size(this.state.mealplanParticipantData); k++) {
+                    let participantName = get(this.state.mealplanParticipantData[k], "name", "?");
+                    let mealType = get(this.state.mealplanMealData[j], "type", "?");
+                    tempMealPlaintext.push("[Day " + i.toString() + "] " + startCase(participantName) + "'s " + startCase(mealType));
+                }
+            }
+        }
+        this.setState({mealPlaintext: tempMealPlaintext});
         
         // Get unique ingredient set and active recipe information
         let ingredientSet = new Set<string>();
         let activeRecipeTypes: string[] = [];
         let activeRecipeCount: number = 0;
-        forOwn(this.state.recipes, function(value: {include: boolean, type?:string, ingredients: { [key: string]: number }}) {
+        let activeRecipeNamePlaintext: string[] = [];
+        forOwn(this.state.recipes, function(value: {include: boolean, type?:string, ingredients: { [key: string]: number }}, key: string) {
             if (value.include) {
                 activeRecipeCount += 1;
+                activeRecipeNamePlaintext.push(startCase(key));
                 activeRecipeTypes.push(value.type ? value.type : 'unknown');
                 forOwn(value.ingredients, function(_: number, key: string) {
                     ingredientSet.add(key);
@@ -701,7 +727,7 @@ export class Form extends React.Component<Props, State> {
         for (var i=1; i <= this.state.mealplanTotalDays ; i++) {
             for (var j=1; j <= this.state.mealplanMealsPerDay; j++) {
                 for (var k=1; k <= this.state.mealplanParticipantCount; k++) {
-                    let mealType: string = get(this.state.mealplanMealData[j], "type").toString();
+                    let mealType: string = get(this.state.mealplanMealData[j], "type", "???").toString();
                     let tempRow: number[] = Array.from({length: activeRecipeCount}, () => 0)
                     let f = Number(get(this.state.mealplanParticipantData[k], "nutrients.fats"));
                     let c = Number(get(this.state.mealplanParticipantData[k], "nutrients.carbs"));
@@ -711,7 +737,6 @@ export class Form extends React.Component<Props, State> {
                     forEach(tempRow, (_: number, index: number) => {
                         let recipeType: string = activeRecipeTypes[index];
                         let recipeTypePlaintext: string = get(this.state.mealplanMealData[recipeType], "type").toString();
-                        console.log(mealType, recipeType, recipeTypePlaintext, i, j, k);
                         if (eq(mealType, recipeTypePlaintext)) {
                             tempRow[index] = 1;
                         }
@@ -749,14 +774,21 @@ export class Form extends React.Component<Props, State> {
 
         // Build the N matrix
         let N: number[][] = [];
+        let tempIngredientSetPlaintext: string[] = [];
         forOwn(Array.from(ingredientSet), (value: string) => {
             let f = Number(get(this.state.ingredients[value], "f")) / this.state.nDivisor;
             let c = Number(get(this.state.ingredients[value], "c")) / this.state.nDivisor;
             let p = Number(get(this.state.ingredients[value], "p")) / this.state.nDivisor;
             N.push([f,c,p]);
+            tempIngredientSetPlaintext.push(startCase(value));
         });
 
         // Set state
+        this.setState({
+            recipePlaintext: activeRecipeNamePlaintext,
+            ingredientPlaintext: tempIngredientSetPlaintext,
+            nutrientPlaintext: ["Fats", "Carbs", "Protein"], // Hardcoding for now since no one owns this yet
+        });
         let queryStr: string = JSON.stringify({
                 "tag" : "demo day! test run.",
                 "algorithm" : algo,
@@ -782,7 +814,7 @@ export class Form extends React.Component<Props, State> {
         .then((response) => { return response.text(); })
         .then((response) => {
             let data = JSON.parse(response);
-            this.setState({results: extend(this.state.results, {m: data.M, r: data.R, n:N})});
+            this.setState({results: extend(this.state.results, {m: data.M, r: data.R, n:N, t:T})});
             this.setState({queryResult: response});
             this.setState({isLoading: false});
         })

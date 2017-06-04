@@ -61,7 +61,7 @@ export class NutrientTable extends React.Component<Props, State> {
         // Render
         return (
             <div>
-                <h3>Nutrient Table</h3>
+                <h3>T Matrix (Meal by Nutrient)</h3>
                 <Table striped bordered condensed hover>
                     <thead>
                         <tr>

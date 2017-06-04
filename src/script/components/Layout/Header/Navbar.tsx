@@ -1,6 +1,6 @@
 // Vendor libs
 import * as React from "react";
-import { Navbar, Nav, NavItem, NavDropdown, MenuItem, Glyphicon } from 'react-bootstrap';
+import { Image, Navbar, Nav, NavItem, NavDropdown, MenuItem, Glyphicon } from 'react-bootstrap';
 
 // AppNavbar
 export class AppNavbar extends React.Component<{}, {}> {
@@ -9,25 +9,18 @@ export class AppNavbar extends React.Component<{}, {}> {
             <Navbar collapseOnSelect>
                 <Navbar.Header>
                     <Navbar.Brand>
-                        <Glyphicon glyph="glyphicon glyphicon-leaf" /> <a href="#">Nutrition App</a>
+                        <a href="#"><Glyphicon glyph="glyphicon glyphicon-leaf" /> Nutrition "Blackbox" App</a>
                     </Navbar.Brand>
                     <Navbar.Toggle />
                 </Navbar.Header>
                 <Navbar.Collapse>
-                    <Nav>
-                        <NavItem eventKey={1} href="#">Link</NavItem>
-                        <NavItem eventKey={2} href="#">Link</NavItem>
-                        <NavDropdown eventKey={3} title="Dropdown" id="basic-nav-dropdown">
-                            <MenuItem eventKey={3.1}>Action</MenuItem>
-                            <MenuItem eventKey={3.2}>Another action</MenuItem>
-                            <MenuItem eventKey={3.3}>Something else here</MenuItem>
-                            <MenuItem divider />
-                            <MenuItem eventKey={3.3}>Separated link</MenuItem>
-                        </NavDropdown>
-                    </Nav>
                     <Nav pullRight>
-                        <NavItem eventKey={1} href="#">Link Right</NavItem>
-                        <NavItem eventKey={2} href="#">Link Right</NavItem>
+                        <Navbar.Text pullRight>
+                            Hi Anonymous!
+                        </Navbar.Text>
+                        <Navbar.Text pullRight>
+                            <Image src="https://www.gravatar.com/avatar/00000000000000000000000000000000?d=retro&f=y&s=20" responsive />
+                        </Navbar.Text>
                     </Nav>
                 </Navbar.Collapse>
             </Navbar>
